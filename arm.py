@@ -263,7 +263,7 @@ class RealArmController(DeviceController):
 
             # Initialize to a default position
             # self.arm.Movej_Cmd(np.array([0, 25, 0, 80, 0, 75, 0]), 10, 0, 0, 1)
-
+            tag, joint_list = self.arm.Get_Joint_Degree()
             return True
         except Exception as e:
             print(f"Real arm initialization error: {e}")
@@ -415,10 +415,10 @@ class RealArmController(DeviceController):
 
         try:
             # Get current joint positions
-            joint_pos = self.arm.Get_Joint_Pos()
+            joint_pos = self.arm.Get_Joint_Degree()
 
             # Get current pose
-            pose = self.arm.Get_Current_Pos()
+            pose = self.arm.Get_Current_Tool_Frame()
 
             return {
                 "joint_positions": joint_pos.tolist()
