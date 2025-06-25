@@ -43,8 +43,15 @@ class RTM:
         l_joint_positions = self.left_arm.get_joint_positions()
 
         r_joint_positions = np.array(l_joint_positions) * np.array(
-            [1, -1, -1, 1, 1, 1, 1]
+            [1, -1, -1, -1, 1, 1, 1]
         )
+        print(
+            "now position is ",
+            l_joint_positions,
+            "right ",
+            self.right_arm.get_joint_positions(),
+        )
+        input(f"target right {r_joint_positions} press enter to continue")
         self.right_arm.move_to_joint_position(r_joint_positions)
         print("arms mirrored ")
 
