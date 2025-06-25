@@ -415,7 +415,7 @@ class RealArmController(DeviceController):
 
         try:
             # Get current joint positions
-            joint_pos = self.arm.Get_Joint_Degree()
+            tag, joint_pos = self.arm.Get_Joint_Degree()
 
             # Get current pose
             pose = self.arm.Get_Current_Tool_Frame()

@@ -51,6 +51,13 @@ def main():
         pos, orient = arm_unit.get_cartesian_position()
         print(f"当前笛卡尔坐标: 位置={pos}, 方向={orient}")
 
+        # 示例1：移动到关节角度位置
+        print(" 移动到安全位置...")
+        safe_position = joint_positions  # 安全的关节角度位置
+        safe_position[1] += 5
+        arm_unit.move_to_joint_position(safe_position)
+        time.sleep(3)  # 等待动作完成
+
         # # 示例3：移动到笛卡尔空间位置
         # print("2. 执行笛卡尔空间移动...")
         # # 在当前位置基础上微调
