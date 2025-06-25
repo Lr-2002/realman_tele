@@ -23,15 +23,15 @@ def main():
         print(f"已创建机械臂模型: {arm_model.get_model_info()['name']}")
 
         # 初始化真实机械臂控制器，使用Realman RM75型号
-        ip_address = "169.254.128.18"  # 请替换为实际的机械臂IP地址
-        controller = RealArmController(RM75, ip_address)
-        print(f"尝试连接Realman机械臂，IP: {ip_address}...")
+        ip_address1 = "169.254.128.18"  # 请替换为实际的机械臂IP地址
+        controller = RealArmController(RM75, ip_address1)
+        print(f"尝试连接Realman机械臂，IP: {ip_address1}...")
 
         # 创建机械臂单元，组合模型和控制器
-        arm_unit = ArmUnit(controller, arm_model, device_name="left_arm")
+        arm_unit1 = ArmUnit(controller, arm_model, device_name="left_arm")
 
         # 初始化机械臂
-        if not arm_unit.initialize():
+        if not arm_unit1.initialize():
             print("机械臂初始化失败，请检查连接状态")
             return
 
@@ -41,21 +41,21 @@ def main():
         # 示例1：移动到关节角度位置
         # print("1. 移动到安全位置...")
         # safe_position = [0, 25, 0, 80, 0, 75, 0]  # 安全的关节角度位置
-        # arm_unit.move_to_joint_position(safe_position)
+        # arm_unit1.move_to_joint_position(safe_position)
         # time.sleep(3)  # 等待动作完成
 
         # 示例2：获取当前位置信息
-        joint_positions = arm_unit.get_joint_positions()
+        joint_positions = arm_unit1.get_joint_positions()
         print(f"当前关节角度: {joint_positions}")
 
-        pos, orient = arm_unit.get_cartesian_position()
+        pos, orient = arm_unit1.get_cartesian_position()
         print(f"当前笛卡尔坐标: 位置={pos}, 方向={orient}")
 
         # 示例1：移动到关节角度位置
         print(" 移动到安全位置...")
         safe_position = joint_positions  # 安全的关节角度位置
         safe_position[1] += 5
-        arm_unit.move_to_joint_position(safe_position)
+        arm_unit1.move_to_joint_position(safe_position)
         time.sleep(3)  # 等待动作完成
 
         # # 示例3：移动到笛卡尔空间位置
@@ -70,7 +70,7 @@ def main():
         # execute_simple_trajectory(arm_unit)
 
         print("演示完成，正在关闭连接...")
-        arm_unit.close()
+        arm_unit1.close()
         print("演示程序结束")
 
     except Exception as e:
@@ -78,8 +78,8 @@ def main():
         print("尝试关闭机械臂连接...")
         print(traceback.format_exc(e))
         try:
-            if "arm_unit" in locals():
-                arm_unit.close()
+            if "arm_unit1" in locals():
+                arm_unit1.close()
         except:
             pass
 
