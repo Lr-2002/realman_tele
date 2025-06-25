@@ -6205,6 +6205,7 @@ class Arm(Set_Joint, Get_Joint, Tcp_Config, Tool_Frame, Work_Frame, Arm_State, I
 
         # 连接机械臂
         byteIP = bytes(ip, "gbk")
+        print(ip, byteIP)
         self.nSocket = self.pDll.Arm_Socket_Start(byteIP, 8080, 200)  # 连接机械臂
 
         state = self.pDll.Arm_Socket_State(self.nSocket)  # 查询机械臂连接状态
