@@ -21,7 +21,7 @@ def main():
     # Create the model, controller, and unit
     model = InspireHandModel()
     controller = InspireHandController(port=args.port, id_value=args.id)
-    hand = InspireHandUnit(model, controller)
+    hand = InspireHandUnit(controller=controller, model=model, device_name="inspire_hand")
     
     # Initialize the hand
     print("Initializing hand connection...")

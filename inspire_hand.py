@@ -332,6 +332,7 @@ class InspireHandModel(DeviceModel):
         Initialize an Inspire Hand model
         """
         self.fingers = 6  # Default number of fingers (5 + palm)
+        self.hand_type = "Inspire Hand"
         
     def validate_data(self, data: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         """
@@ -440,6 +441,23 @@ class InspireHandModel(DeviceModel):
         
         # Should never reach here due to validation
         return {}
+        
+    def get_model_info(self) -> Dict[str, Any]:
+        """
+        Get information about the model
+        
+        Returns:
+            Dictionary with model information
+        """
+        return {
+            "name": self.hand_type,
+            "type": "robotic_hand",
+            "dof": self.fingers,
+            "control_modes": ["position", "force", "speed"],
+            "position_range": [0, 1000],
+            "force_range": [0, 1000],
+            "speed_range": [0, 1000]
+        }
 
 
 class InspireHandController(DeviceController):
@@ -583,6 +601,17 @@ class InspireHandUnit(DeviceUnit):
     Specialized device unit for Inspire Hand.
     Extends the DeviceUnit with hand-specific functionality.
     """
+    
+    def __init__(self, controller: DeviceController, model: DeviceModel, device_name: str):
+        """
+        Initialize an Inspire Hand unit
+        
+        Args:
+            controller: Hand controller for hardware communication
+            model: Hand model for data transformation
+            device_name: Name of the device
+        """
+        super().__init__(controller, model, device_name)
     
     def set_finger_positions(self, positions: List[float]) -> bool:
         """
