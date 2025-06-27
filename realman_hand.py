@@ -6,6 +6,8 @@ including mirroring functionality.
 """
 
 import time
+import threading
+import queue
 import numpy as np
 
 # Import arm components
@@ -45,6 +47,16 @@ class RealmanHand:
             "right_hand": False
         }
         
+        # Message queues for each component
+        self.left_arm_queue = queue.Queue(maxsize=1)
+        self.right_arm_queue = queue.Queue(maxsize=1)
+        self.left_hand_queue = queue.Queue(maxsize=1)
+        self.right_hand_queue = queue.Queue(maxsize=1)
+        
+        # Control flags
+        self.running = True
+        self.threads = []
+        
         # Initialize arms
         print("Initializing arms...")
         self.init_arms(left_arm_ip, right_arm_ip)
@@ -56,7 +68,11 @@ class RealmanHand:
         print("Initialization complete.")
         print(f"Arm status: Left={self.initialized['left_arm']}, Right={self.initialized['right_arm']}")
         print(f"Hand status: Left={self.initialized['left_hand']}, Right={self.initialized['right_hand']}")
-        input('go ahead? ') 
+        
+        # Start control threads
+        self.start_control_threads()
+        
+        input('Control threads started. Press Enter to continue...') 
         
     def init_arms(self, left_arm_ip, right_arm_ip):
         """Initialize both arms"""
@@ -177,9 +193,125 @@ class RealmanHand:
         else:
             print("Cannot mirror hands - both hands must be initialized")
 
+    def start_control_threads(self):
+        """
+        Start the continuous control threads for all components
+        """
+        if self.initialized["left_arm"]:
+            left_arm_thread = threading.Thread(
+                target=self._left_arm_control_thread,
+                daemon=True
+            )
+            self.threads.append(left_arm_thread)
+            left_arm_thread.start()
+            print("Left arm control thread started")
+            
+        if self.initialized["right_arm"]:
+            right_arm_thread = threading.Thread(
+                target=self._right_arm_control_thread,
+                daemon=True
+            )
+            self.threads.append(right_arm_thread)
+            right_arm_thread.start()
+            print("Right arm control thread started")
+            
+        if self.initialized["left_hand"]:
+            left_hand_thread = threading.Thread(
+                target=self._left_hand_control_thread,
+                daemon=True
+            )
+            self.threads.append(left_hand_thread)
+            left_hand_thread.start()
+            print("Left hand control thread started")
+            
+        if self.initialized["right_hand"]:
+            right_hand_thread = threading.Thread(
+                target=self._right_hand_control_thread,
+                daemon=True
+            )
+            self.threads.append(right_hand_thread)
+            right_hand_thread.start()
+            print("Right hand control thread started")
+    
+    def _left_arm_control_thread(self):
+        """
+        Thread function for controlling left arm
+        """
+        print("Left arm control thread running")
+        while self.running:
+            try:
+                # Get latest joint positions from queue (non-blocking)
+                try:
+                    joint_positions = self.left_arm_queue.get(block=False)
+                    self.left_arm.move_to_joint_position(joint_positions)
+                except queue.Empty:
+                    pass  # No new commands, continue
+                
+                # Small sleep to avoid busy-waiting
+                time.sleep(0.001)
+            except Exception as e:
+                print(f"Error in left arm control thread: {e}")
+    
+    def _right_arm_control_thread(self):
+        """
+        Thread function for controlling right arm
+        """
+        print("Right arm control thread running")
+        while self.running:
+            try:
+                # Get latest joint positions from queue (non-blocking)
+                try:
+                    joint_positions = self.right_arm_queue.get(block=False)
+                    self.right_arm.move_to_joint_position(joint_positions)
+                except queue.Empty:
+                    pass  # No new commands, continue
+                
+                # Small sleep to avoid busy-waiting
+                time.sleep(0.001)
+            except Exception as e:
+                print(f"Error in right arm control thread: {e}")
+    
+    def _left_hand_control_thread(self):
+        """
+        Thread function for controlling left hand
+        """
+        print("Left hand control thread running")
+        while self.running:
+            try:
+                # Get latest finger positions from queue (non-blocking)
+                try:
+                    finger_positions = self.left_hand_queue.get(block=False)
+                    self.left_hand.set_finger_positions(finger_positions)
+                except queue.Empty:
+                    pass  # No new commands, continue
+                
+                # Small sleep to avoid busy-waiting
+                time.sleep(0.001)
+            except Exception as e:
+                print(f"Error in left hand control thread: {e}")
+    
+    def _right_hand_control_thread(self):
+        """
+        Thread function for controlling right hand
+        """
+        print("Right hand control thread running")
+        while self.running:
+            try:
+                # Get latest finger positions from queue (non-blocking)
+                try:
+                    finger_positions = self.right_hand_queue.get(block=False)
+                    self.right_hand.set_finger_positions(finger_positions)
+                except queue.Empty:
+                    pass  # No new commands, continue
+                
+                # Small sleep to avoid busy-waiting
+                time.sleep(0.001)
+            except Exception as e:
+                print(f"Error in right hand control thread: {e}")
+    
     def step(self, action):
         """
-        Execute actions for both arms and hands concurrently using threads.
+        Queue actions for both arms and hands, to be executed by control threads.
         
         Args:
             action: List/array of 2 * (7 + 6) = 26 values:
@@ -198,61 +330,56 @@ class RealmanHand:
         right_arm_action = action[13:20]
         right_hand_action = action[20:26]
         
-        threads = []
-        
-        # Create thread for left arm
+        # Queue the actions for each control thread
         if self.initialized["left_arm"]:
-            left_arm_thread = threading.Thread(
-                target=self.left_arm.move_to_joint_position,
-                args=(left_arm_action,),
-                daemon=True
-            )
-            threads.append(left_arm_thread)
+            # Clear queue and add new command (only keep most recent)
+            while not self.left_arm_queue.empty():
+                try:
+                    self.left_arm_queue.get_nowait()
+                except queue.Empty:
+                    break
+            self.left_arm_queue.put(left_arm_action)
             
-        # Create thread for right arm
         if self.initialized["right_arm"]:
-            right_arm_thread = threading.Thread(
-                target=self.right_arm.move_to_joint_position,
-                args=(right_arm_action,),
-                daemon=True
-            )
-            threads.append(right_arm_thread)
-        
-        # Create thread for left hand
-        if self.initialized["left_hand"]:
-            left_hand_thread = threading.Thread(
-                target=self.left_hand.set_finger_positions,
-                args=(left_hand_action,),
-                daemon=True
-            )
-            threads.append(left_hand_thread)
-        
-        # Create thread for right hand
-        if self.initialized["right_hand"]:
-            right_hand_thread = threading.Thread(
-                target=self.right_hand.set_finger_positions,
-                args=(right_hand_action,),
-                daemon=True
-            )
-            threads.append(right_hand_thread)
-        
-        # Start all threads simultaneously
-        for thread in threads:
-            thread.start()
+            # Clear queue and add new command (only keep most recent)
+            while not self.right_arm_queue.empty():
+                try:
+                    self.right_arm_queue.get_nowait()
+                except queue.Empty:
+                    break
+            self.right_arm_queue.put(right_arm_action)
             
-        # No need to join threads - make it non-blocking
-        # This allows the control loop to continue without waiting
+        if self.initialized["left_hand"]:
+            # Clear queue and add new command (only keep most recent)
+            while not self.left_hand_queue.empty():
+                try:
+                    self.left_hand_queue.get_nowait()
+                except queue.Empty:
+                    break
+            self.left_hand_queue.put(left_hand_action)
+            
+        if self.initialized["right_hand"]:
+            # Clear queue and add new command (only keep most recent)
+            while not self.right_hand_queue.empty():
+                try:
+                    self.right_hand_queue.get_nowait()
+                except queue.Empty:
+                    break
+            self.right_hand_queue.put(right_hand_action)
         
         return True
         
     def close(self):
-        """Close all connections"""
+        """Close all connections and stop threads"""
         print("Closing connections...")
         
-        # No explicit close methods are available in the API,
-        # but we can set default positions before disconnecting
+        # Stop all control threads
+        self.running = False
         
-        # Set hands to open position
+        # Wait a bit for threads to finish
+        time.sleep(0.1)
+        
+        # Set hands to open position if initialized
 
         print("All connections closed")
 
