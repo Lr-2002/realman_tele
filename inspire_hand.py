@@ -491,7 +491,7 @@ class InspireHandController(DeviceController):
                 return False
                 
             # Set default speed for smooth operation
-            self.can_device.send_command('speedSet', [500, 500, 500, 500, 500, 500])
+            self.can_device.send_command('speedSet', [1000, 1000, 1000, 1000, 1000, 1000])
             return True
         except Exception as e:
             print(f"Failed to initialize Inspire Hand controller: {e}")

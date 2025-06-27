@@ -25,7 +25,7 @@ class RealmanHand:
         left_hand_port="/dev/ttyUSB4",
         right_hand_port="/dev/ttyUSB5",
         left_hand_id="01",
-        right_hand_id="10",
+        right_hand_id="01",
     ):
         """
         Initialize connections to the arms and hands.
@@ -230,7 +230,6 @@ class RealmanHand:
         if self.initialized["left_hand"]:
             try:
                 self.left_hand.set_finger_positions(left_hand_action)
-                time.sleep(3)
             except Exception as e:
                 print(f"Error executing left hand action: {e}")
                 success = False
@@ -241,7 +240,6 @@ class RealmanHand:
         if self.initialized["right_hand"]:
             try:
                 self.right_hand.set_finger_positions(right_hand_action)
-                time.sleep(3)
             except Exception as e:
                 print(f"Error executing right hand action: {e}")
                 success = False
@@ -296,6 +294,18 @@ def main():
             *ra ,
             # Right hand (6 values)
             1000, 1000, 1000, 1000, 1000, 1000
+        ]
+        system.step(action)
+        time.sleep(1)
+        action = [
+            # Left arm (7 values)
+            *la, 
+            # Left hand (6 values)
+            0, 0, 0, 0, 300, 0,
+            # Right arm (7 values)
+            *ra ,
+            # Right hand (6 values)
+            0, 0, 0, 0, 300, 0
         ]
         system.step(action)
         time.sleep(3)    
