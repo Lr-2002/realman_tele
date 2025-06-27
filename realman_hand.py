@@ -25,7 +25,7 @@ class RealmanHand:
         left_hand_port="/dev/ttyUSB4",
         right_hand_port="/dev/ttyUSB5",
         left_hand_id="01",
-        right_hand_id="02",
+        right_hand_id="10",
     ):
         """
         Initialize connections to the arms and hands.
@@ -56,6 +56,7 @@ class RealmanHand:
         print("Initialization complete.")
         print(f"Arm status: Left={self.initialized['left_arm']}, Right={self.initialized['right_arm']}")
         print(f"Hand status: Left={self.initialized['left_hand']}, Right={self.initialized['right_hand']}")
+        input('go ahead? ') 
         
     def init_arms(self, left_arm_ip, right_arm_ip):
         """Initialize both arms"""
@@ -146,13 +147,14 @@ class RealmanHand:
                 # The mirroring transformation flips the signs of specific joints
                 # to ensure proper mirroring across the sagittal plane
                 right_arm_positions = np.array(left_arm_positions) * np.array(
-                    [1, -1, -1, -1, -1, 1, -1]
+                    [1, -1, -1, -1, -1, -1, -1]
                 )
                 
                 print(f"Mirrored right arm positions: {right_arm_positions}")
                 
                 # Move right arm to mirrored position
                 success = self.right_arm.move_to_joint_position(right_arm_positions)
+                return left_arm_positions, right_arm_positions
                 print(f"Arm mirroring {'successful' if success else 'failed'}")
             except Exception as e:
                 print(f"Error during arm mirroring: {e}")
@@ -228,6 +230,7 @@ class RealmanHand:
         if self.initialized["left_hand"]:
             try:
                 self.left_hand.set_finger_positions(left_hand_action)
+                time.sleep(3)
             except Exception as e:
                 print(f"Error executing left hand action: {e}")
                 success = False
@@ -238,6 +241,7 @@ class RealmanHand:
         if self.initialized["right_hand"]:
             try:
                 self.right_hand.set_finger_positions(right_hand_action)
+                time.sleep(3)
             except Exception as e:
                 print(f"Error executing right hand action: {e}")
                 success = False
@@ -254,19 +258,6 @@ class RealmanHand:
         # but we can set default positions before disconnecting
         
         # Set hands to open position
-        if self.initialized["left_hand"]:
-            try:
-                self.left_hand.set_finger_positions([0, 0, 0, 0, 0, 0])
-                print("Left hand reset to open position")
-            except Exception as e:
-                print(f"Error resetting left hand: {e}")
-                
-        if self.initialized["right_hand"]:
-            try:
-                self.right_hand.set_finger_positions([0, 0, 0, 0, 0, 0])
-                print("Right hand reset to open position")
-            except Exception as e:
-                print(f"Error resetting right hand: {e}")
 
         print("All connections closed")
 
@@ -289,25 +280,25 @@ def main():
         
         # Demo 2: Mirror operation
         print("\n=== Demo 2: Mirror Operation ===")
-        system.mirror()
+        la, ra = system.mirror()
         time.sleep(3)  # Give time for the movement to complete
         
         # # Demo 3: Execute simple action
-        # print("\n=== Demo 3: Execute Simple Action ===")
+        print("\n=== Demo 3: Execute Simple Action ===")
         # # Example action: home positions for arms and open hands
         # # The actual values should be adjusted based on your specific setup
-        # action = [
-        #     # Left arm (7 values)
-        #     0, 0, 0, 0, 0, 0, 0,
-        #     # Left hand (6 values)
-        #     0, 0, 0, 0, 0, 0,
-        #     # Right arm (7 values)
-        #     0, 0, 0, 0, 0, 0, 0,
-        #     # Right hand (6 values)
-        #     0, 0, 0, 0, 0, 0
-        # ]
-        # system.step(action)
-        
+        action = [
+            # Left arm (7 values)
+            *la, 
+            # Left hand (6 values)
+            1000, 1000, 1000, 1000, 1000, 1000,
+            # Right arm (7 values)
+            *ra ,
+            # Right hand (6 values)
+            1000, 1000, 1000, 1000, 1000, 1000
+        ]
+        system.step(action)
+        time.sleep(3)    
     finally:
         # Clean up
         system.close()

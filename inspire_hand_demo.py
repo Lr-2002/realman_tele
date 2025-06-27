@@ -47,28 +47,6 @@ def main():
         hand.set_finger_positions([1000, 1000, 1000, 1000, 1000, 0])
         time.sleep(3)
         
-        # Demo: Pinch gesture
-        print("Performing pinch gesture...")
-        hand.set_finger_positions([1000, 1000, 0, 0, 0, 0])
-        time.sleep(3)
-        
-        # Demo: Point gesture
-        print("Performing point gesture...")
-        hand.set_finger_positions([0, 1000, 1000, 1000, 1000, 0])
-        time.sleep(3)
-        
-        # Demo: Get current positions
-        positions = hand.get_finger_positions()
-        print(f"Current finger positions: {positions}")
-        
-        # Demo: Get temperature
-        temp = hand.get_temperature()
-        print(f"Hand temperature: {temp}°C")
-        
-        # Demo: Open hand again before exiting
-        print("Opening hand...")
-        hand.set_finger_positions([0, 0, 0, 0, 0, 0])
-        time.sleep(2)
         
     except KeyboardInterrupt:
         print("Demo interrupted")
