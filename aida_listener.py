@@ -174,7 +174,7 @@ class AIDAListener:
             if len(hex_received) >= 94:
                 grip_data = hex_received[84:92]
                 grip_byte_data = bytearray.fromhex(grip_data)
-                Grip = self.bytes_to_signed_int(grip_byte_data) / 10000.0
+                Grip = self.bytes_to_signed_int(grip_byte_data) 
             else:
                 Grip = 0
                 

@@ -5,6 +5,7 @@ Uses UDPListener to receive data and RealmanHand to control the robot.
 """
 
 import json
+import socket
 import time
 import threading
 import argparse
@@ -188,6 +189,7 @@ class RealmanTeleop:
         """Main control loop that processes data and sends commands to the robot"""
         last_control_time = time.time()
         control_rate = 0.1  # seconds between control commands
+        print('self.running', self.running)
         
         while self.running:
             current_time = time.time()
@@ -208,7 +210,7 @@ class RealmanTeleop:
             # Map hand values to appropriate range
             left_hand_positions = self.map_hand_values(left_hand_data)
             right_hand_positions = self.map_hand_values(right_hand_data)
-            
+               
             # If we have valid data for all components, send control command
             if left_arm_joints and right_arm_joints and left_hand_positions and right_hand_positions:
                 # Combine all data into single action array
