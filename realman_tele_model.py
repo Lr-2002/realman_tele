@@ -43,7 +43,7 @@ class RTM:
         l_joint_positions = self.left_arm.get_joint_positions()
 
         r_joint_positions = np.array(l_joint_positions) * np.array(
-            [1, -1, -1, -1, 1, 1, 1]
+            [1, -1, -1, -1, -1, 1, -1]
         )
         print(
             "now position is ",
