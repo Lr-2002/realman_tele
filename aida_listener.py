@@ -42,8 +42,8 @@ class DataFilter:
 class AIDAListener:
     def __init__(
         self, 
-        left_port="/dev/ttyUSB0", 
-        right_port="/dev/ttyUSB1", 
+        left_port="/dev/rmUSB0", 
+        right_port="/dev/rmUSB1", 
         baudrate=460800,
         udp_broadcast=True,
         udp_port_left=9997,
@@ -108,7 +108,6 @@ class AIDAListener:
         except Exception as e:
             print(f"Error connecting to right controller: {e}")
             self.right_ser = None
-            
         # Configure controllers
         bytes_to_send = binascii.unhexlify(self.config_cmd.replace(" ", ""))
         
@@ -118,7 +117,6 @@ class AIDAListener:
             self.right_ser.write(bytes_to_send)
             
         time.sleep(1)  # Allow time for device to configure
-        
         return self.left_ser is not None or self.right_ser is not None
         
     def bytes_to_signed_int(self, byte_data):
@@ -206,6 +204,7 @@ class AIDAListener:
             try:
                 self.left_ser.write(bytes_to_send)
                 left_bytes_received = self.left_ser.read(self.left_ser.inWaiting())
+                print('left byte', left_bytes_received)
                 left_hex_received = binascii.hexlify(left_bytes_received).decode('utf-8').upper()
                 left_joints, left_grip = self.parse_joint_data(left_hex_received)
                 
@@ -247,6 +246,8 @@ class AIDAListener:
             except Exception as e:
                 print(f"Error reading from right controller: {e}")
     
+        print(self.left_joints, self.left_grip, self.right_joints, self.right_grip)
+
     def broadcast_data(self, port, joints, grip):
         """Broadcast joint data over UDP"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
@@ -329,9 +330,9 @@ def signal_handler(sig, frame):
 def main():
     """Main function"""
     parser = argparse.ArgumentParser(description='AIDA Data Listener')
-    parser.add_argument('--left-port', type=str, default='/dev/ttyUSB0', 
+    parser.add_argument('--left-port', type=str, default='/dev/ttyUSB1', 
                         help='Serial port for left controller')
-    parser.add_argument('--right-port', type=str, default='/dev/ttyUSB1',
+    parser.add_argument('--right-port', type=str, default='/dev/ttyUSB2',
                         help='Serial port for right controller')
     parser.add_argument('--baudrate', type=int, default=460800,
                         help='Serial baudrate')

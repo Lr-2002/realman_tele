@@ -180,6 +180,7 @@ class RealmanTeleop:
         try:
             # Clamp values to 0-1000 range and convert to int
             mapped_values = [int(min(max(v, 0), 1000)) for v in values]
+            mapped_values[5]=500
             return mapped_values
         except Exception as e:
             print(f"Error processing hand values: {e}")
@@ -188,7 +189,7 @@ class RealmanTeleop:
     def control_loop(self):
         """Main control loop that processes data and sends commands to the robot"""
         last_control_time = time.time()
-        control_rate = 0.1  # seconds between control commands
+        control_rate = 0.02  # seconds between control commands
         print('self.running', self.running)
         
         while self.running:
