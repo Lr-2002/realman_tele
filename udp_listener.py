@@ -78,7 +78,7 @@ class UDPListener:
         # Wait for all threads to complete (they won't unless interrupted)
         try:
             while any(thread.is_alive() for thread in threads):
-                time.sleep(0.1)
+                time.sleep(0.01)
         except KeyboardInterrupt:
             self.stop()
             
