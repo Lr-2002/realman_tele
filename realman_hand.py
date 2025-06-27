@@ -6,6 +6,7 @@ including mirroring functionality.
 """
 
 import time
+import threading
 import numpy as np
 
 # Import arm components
@@ -200,11 +201,53 @@ class RealmanHand:
         
         success = True
         
-        left_arm_success = self.left_arm.move_to_joint_position(left_arm_action)
-        right_arm_success = self.right_arm.move_to_joint_position(right_arm_action)
-        self.left_hand.set_finger_positions(left_hand_action)
-        self.right_hand.set_finger_positions(right_hand_action)
-           
+        # Run all commands in parallel using threads
+        threads = []
+        
+        # Left arm thread
+        if self.initialized["left_arm"]:
+            left_arm_thread = threading.Thread(
+                target=self.left_arm.move_to_joint_position,
+                args=(left_arm_action,)
+            )
+            left_arm_thread.daemon = True
+            threads.append(left_arm_thread)
+            left_arm_thread.start()
+        
+        # Right arm thread
+        if self.initialized["right_arm"]:
+            right_arm_thread = threading.Thread(
+                target=self.right_arm.move_to_joint_position,
+                args=(right_arm_action,)
+            )
+            right_arm_thread.daemon = True
+            threads.append(right_arm_thread)
+            right_arm_thread.start()
+        
+        # Left hand thread
+        if self.initialized["left_hand"]:
+            left_hand_thread = threading.Thread(
+                target=self.left_hand.set_finger_positions,
+                args=(left_hand_action,)
+            )
+            left_hand_thread.daemon = True
+            threads.append(left_hand_thread)
+            left_hand_thread.start()
+        
+        # Right hand thread
+        if self.initialized["right_hand"]:
+            right_hand_thread = threading.Thread(
+                target=self.right_hand.set_finger_positions,
+                args=(right_hand_action,)
+            )
+            right_hand_thread.daemon = True
+            threads.append(right_hand_thread)
+            right_hand_thread.start()
+        
+        # Optional: if you want to wait for all commands to complete
+        # Uncomment these lines:
+        # for thread in threads:
+        #    thread.join(timeout=0.01)  # Short timeout to prevent blocking
         return success
         
     def close(self):
