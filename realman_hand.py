@@ -6,7 +6,6 @@ including mirroring functionality.
 """
 
 import time
-import threading
 import numpy as np
 
 # Import arm components
@@ -18,65 +17,6 @@ from robotic_arm_package.robotic_arm import RM75
 from inspire_hand import InspireHandModel, InspireHandController, InspireHandUnit
 
 
-class ThreadManager:
-    """Thread manager to handle safe execution and termination of robot control threads"""
-    def __init__(self):
-        self.active_threads = {}
-        self.locks = {}
-        self.stop_flags = {}
-        
-    def register_component(self, name):
-        """Register a new component"""
-        self.locks[name] = threading.Lock()
-        self.stop_flags[name] = threading.Event()
-        self.active_threads[name] = None
-        
-    def execute(self, name, target_func, args=()):
-        """Execute function in a thread with proper management"""
-        with self.locks[name]:
-            # Signal previous thread to stop if exists
-            if self.active_threads[name] and self.active_threads[name].is_alive():
-                self.stop_flags[name].set()
-                # Don't wait for it to complete, let it terminate naturally
-                
-            # Reset stop flag for new thread
-            self.stop_flags[name].clear()
-            
-            # Create and start new thread
-            thread = threading.Thread(
-                target=self._wrapped_target,
-                args=(name, target_func, args)
-            )
-            thread.daemon = True
-            self.active_threads[name] = thread
-            thread.start()
-            
-    def _wrapped_target(self, name, target_func, args):
-        """Wrapper that adds stop flag checking to target function"""
-        try:
-            # Simple functions like set_finger_positions can't be interrupted
-            # Just run them directly
-            if name.endswith('_hand'):
-                target_func(*args)
-            else:
-                # For more complex functions like move_to_joint_position
-                # we'd need to modify them to accept and check a stop flag
-                # For now just run them and let them complete
-                target_func(*args)
-        except Exception as e:
-            print(f"Error in thread {name}: {e}")
-            
-    def stop_all(self):
-        """Stop all active threads"""
-        for name in self.stop_flags:
-            self.stop_flags[name].set()
-        
-        # Wait briefly for threads to respond to stop signal
-        for name, thread in self.active_threads.items():
-            if thread and thread.is_alive():
-                thread.join(timeout=0.05)  # Short timeout
-
-
 class RealmanHand:
     def __init__(
         self,
@@ -84,35 +24,26 @@ class RealmanHand:
         right_arm_ip="169.254.128.19",
         left_hand_port="/dev/ttyUSB4",
         right_hand_port="/dev/ttyUSB5",
-        left_hand_id=1,
-        right_hand_id=1
+        left_hand_id="01",
+        right_hand_id="01",
     ):
         """
         Initialize connections to the arms and hands.
         
         Args:
-            left_arm_ip: IP address for left arm
-            right_arm_ip: IP address for right arm
-            left_hand_port: Serial port for left hand
-            right_hand_port: Serial port for right hand
-            left_hand_id: CAN ID for left hand
-            right_hand_id: CAN ID for right hand
+            left_arm_ip: IP address of the left arm
+            right_arm_ip: IP address of the right arm
+            left_hand_port: Serial port for left hand CAN interface
+            right_hand_port: Serial port for right hand CAN interface
+            left_hand_id: Device ID for left hand (binary format)
+            right_hand_id: Device ID for right hand (binary format)
         """
-        # Initialize thread manager
-        self.thread_manager = ThreadManager()
-        # Track initialization status
         self.initialized = {
             "left_arm": False,
             "right_arm": False,
             "left_hand": False,
             "right_hand": False
         }
-        
-        # Register components with thread manager
-        self.thread_manager.register_component("left_arm")
-        self.thread_manager.register_component("right_arm")
-        self.thread_manager.register_component("left_hand")
-        self.thread_manager.register_component("right_hand")
         
         # Initialize arms
         print("Initializing arms...")
@@ -248,7 +179,7 @@ class RealmanHand:
 
     def step(self, action):
         """
-        Execute actions for both arms and hands.
+        Execute actions for both arms and hands concurrently using threads.
         
         Args:
             action: List/array of 2 * (7 + 6) = 26 values:
@@ -267,49 +198,56 @@ class RealmanHand:
         right_arm_action = action[13:20]
         right_hand_action = action[20:26]
         
-        success = True
+        threads = []
         
-        # Execute all commands in parallel with proper thread management
-        
-        # Left arm command
+        # Create thread for left arm
         if self.initialized["left_arm"]:
-            self.thread_manager.execute(
-                "left_arm",
-                self.left_arm.move_to_joint_position,
-                (left_arm_action,)
+            left_arm_thread = threading.Thread(
+                target=self.left_arm.move_to_joint_position,
+                args=(left_arm_action,),
+                daemon=True
             )
-        
-        # Right arm command
+            threads.append(left_arm_thread)
+            
+        # Create thread for right arm
         if self.initialized["right_arm"]:
-            self.thread_manager.execute(
-                "right_arm",
-                self.right_arm.move_to_joint_position,
-                (right_arm_action,)
+            right_arm_thread = threading.Thread(
+                target=self.right_arm.move_to_joint_position,
+                args=(right_arm_action,),
+                daemon=True
             )
+            threads.append(right_arm_thread)
         
-        # Left hand command
+        # Create thread for left hand
         if self.initialized["left_hand"]:
-            self.thread_manager.execute(
-                "left_hand",
-                self.left_hand.set_finger_positions,
-                (left_hand_action,)
+            left_hand_thread = threading.Thread(
+                target=self.left_hand.set_finger_positions,
+                args=(left_hand_action,),
+                daemon=True
             )
+            threads.append(left_hand_thread)
         
-        # Right hand command
+        # Create thread for right hand
         if self.initialized["right_hand"]:
-            self.thread_manager.execute(
-                "right_hand",
-                self.right_hand.set_finger_positions,
-                (right_hand_action,)
+            right_hand_thread = threading.Thread(
+                target=self.right_hand.set_finger_positions,
+                args=(right_hand_action,),
+                daemon=True
             )
-        return success
+            threads.append(right_hand_thread)
+        
+        # Start all threads simultaneously
+        for thread in threads:
+            thread.start()
+            
+        # No need to join threads - make it non-blocking
+        # This allows the control loop to continue without waiting
+        
+        return True
         
     def close(self):
         """Close all connections"""
         print("Closing connections...")
-        
-        # Stop all running threads
-        self.thread_manager.stop_all()
         
         # No explicit close methods are available in the API,
         # but we can set default positions before disconnecting
