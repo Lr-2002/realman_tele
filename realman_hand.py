@@ -200,52 +200,11 @@ class RealmanHand:
         
         success = True
         
-        # Execute left arm action
-        if self.initialized["left_arm"]:
-            try:
-                left_arm_success = self.left_arm.move_to_joint_position(left_arm_action)
-                if not left_arm_success:
-                    print("Warning: Left arm action failed")
-                    success = False
-            except Exception as e:
-                print(f"Error executing left arm action: {e}")
-                success = False
-        else:
-            print("Warning: Left arm not initialized, skipping action")
-            
-        # Execute right arm action
-        if self.initialized["right_arm"]:
-            try:
-                right_arm_success = self.right_arm.move_to_joint_position(right_arm_action)
-                if not right_arm_success:
-                    print("Warning: Right arm action failed")
-                    success = False
-            except Exception as e:
-                print(f"Error executing right arm action: {e}")
-                success = False
-        else:
-            print("Warning: Right arm not initialized, skipping action")
-            
-        # Execute left hand action
-        if self.initialized["left_hand"]:
-            try:
-                self.left_hand.set_finger_positions(left_hand_action)
-            except Exception as e:
-                print(f"Error executing left hand action: {e}")
-                success = False
-        else:
-            print("Warning: Left hand not initialized, skipping action")
-            
-        # Execute right hand action
-        if self.initialized["right_hand"]:
-            try:
-                self.right_hand.set_finger_positions(right_hand_action)
-            except Exception as e:
-                print(f"Error executing right hand action: {e}")
-                success = False
-        else:
-            print("Warning: Right hand not initialized, skipping action")
-            
+        left_arm_success = self.left_arm.move_to_joint_position(left_arm_action)
+        right_arm_success = self.right_arm.move_to_joint_position(right_arm_action)
+        self.left_hand.set_finger_positions(left_hand_action)
+        self.right_hand.set_finger_positions(right_hand_action)
+           
         return success
         
     def close(self):
