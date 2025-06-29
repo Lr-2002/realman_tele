@@ -202,6 +202,7 @@ def move_left_arm_thread():
         with data_lock:
             joints = l_joints
         if joints:
+            print('executing joints:', joints)
             l_arm.rm_movej_canfd(joints, True, 0, 0, 0)
         time.sleep(0.02)
 

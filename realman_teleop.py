@@ -92,10 +92,10 @@ class RealmanTeleop:
                     # Process based on port
                     if port == self.left_arm_port:
                         self.left_arm_data = json_data
-                        print(f"Received left arm data from {addr[0]}:{addr[1]}")
+                        #print(f"Received left arm data from {addr[0]}:{addr[1]}")
                     elif port == self.right_arm_port:
                         self.right_arm_data = json_data
-                        print(f"Received right arm data from {addr[0]}:{addr[1]}")
+                        #print(f"Received right arm data from {addr[0]}:{addr[1]}")
                         
                 except json.JSONDecodeError:
                     print(f"Invalid JSON received on port {port}")
@@ -180,18 +180,48 @@ class RealmanTeleop:
         try:
             # Clamp values to 0-1000 range and convert to int
             mapped_values = [int(min(max(v, 0), 1000)) for v in values]
-            mapped_values[5]=500
+            mapped_values[5]=20
             return mapped_values
         except Exception as e:
             print(f"Error processing hand values: {e}")
             return [0, 0, 0, 0, 0, 0]
     
+    def get_control_data(self):
+        # Extract and process arm joint data
+        left_arm_joints = self.extract_arm_joint_data(self.left_arm_data)
+        right_arm_joints = self.extract_arm_joint_data(self.right_arm_data)
+        
+        # Extract and process hand data
+        left_hand_data = self.extract_hand_data(self.left_arm_data)
+        right_hand_data = self.extract_hand_data(self.right_arm_data)
+        
+        # Map hand values to appropriate range
+        left_hand_positions = self.map_hand_values(left_hand_data)
+        right_hand_positions = self.map_hand_values(right_hand_data)
+           
+        # If we have valid data for all components, send control command
+        if left_arm_joints and right_arm_joints and left_hand_positions and right_hand_positions:
+            # Combine all data into single action array
+            action = [
+                # Left arm (7 values)
+                *left_arm_joints,
+                # Left hand (6 values)
+                *left_hand_positions,
+                # Right arm (7 values)
+                *right_arm_joints,
+                # Right hand (6 values)
+                *right_hand_positions
+            ]
+            return action
+
+
     def control_loop(self):
         """Main control loop that processes data and sends commands to the robot"""
         last_control_time = time.time()
         control_rate = 0.02  # seconds between control commands
         print('self.running', self.running)
-        
+        time.sleep(1)
+        self.robot.start_with_action(self.get_control_data())
         while self.running:
             current_time = time.time()
             
@@ -200,36 +230,11 @@ class RealmanTeleop:
                 time.sleep(0.01)
                 continue
                 
-            # Extract and process arm joint data
-            left_arm_joints = self.extract_arm_joint_data(self.left_arm_data)
-            right_arm_joints = self.extract_arm_joint_data(self.right_arm_data)
+            action = self.get_control_data()
+            # Send control command
+            print("Sending control command to robot")
+            self.robot.step(action)
             
-            # Extract and process hand data
-            left_hand_data = self.extract_hand_data(self.left_arm_data)
-            right_hand_data = self.extract_hand_data(self.right_arm_data)
-            
-            # Map hand values to appropriate range
-            left_hand_positions = self.map_hand_values(left_hand_data)
-            right_hand_positions = self.map_hand_values(right_hand_data)
-               
-            # If we have valid data for all components, send control command
-            if left_arm_joints and right_arm_joints and left_hand_positions and right_hand_positions:
-                # Combine all data into single action array
-                action = [
-                    # Left arm (7 values)
-                    *left_arm_joints,
-                    # Left hand (6 values)
-                    *left_hand_positions,
-                    # Right arm (7 values)
-                    *right_arm_joints,
-                    # Right hand (6 values)
-                    *right_hand_positions
-                ]
-                
-                # Send control command
-                print("Sending control command to robot")
-                self.robot.step(action)
-                
             # Update control time
             last_control_time = current_time
     

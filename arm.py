@@ -28,7 +28,8 @@ class ArmUnit(DeviceUnit):
             True if control successful, False otherwise
         """
         return self.control({"type": "joint", "positions": positions})
-
+    def sync_position(self, positions):
+        return self.control({"type": "sync", "positions": positions})
     def move_to_cartesian_position(
         self, position: List[float], orientation: List[float]
     ) -> bool:
@@ -126,7 +127,7 @@ class SocketArmController(DeviceController):
 
         cmd = control_signal.get("command")
 
-        if cmd == "joint_position":
+        if cmd == "joint_position" or cmd =='sync':
             if "data" not in control_signal:
                 return False, "Missing 'data' field for joint position command"
 
@@ -157,7 +158,7 @@ class SocketArmController(DeviceController):
                     False,
                     f"Expected list for orientation data, got {type(orientation)}",
                 )
-
+        
         else:
             return False, f"Unsupported command: {cmd}"
 
@@ -293,7 +294,7 @@ class RealArmController(DeviceController):
 
         cmd = control_signal.get("command")
 
-        if cmd == "joint_position":
+        if cmd == "joint_position" or 'sync':
             if "data" not in control_signal:
                 return False, "Missing 'data' field for joint position command"
 
@@ -381,22 +382,22 @@ class RealArmController(DeviceController):
 
         try:
             cmd_type = control_signal.get("command", "")
+            print('cmd type is : ', cmd_type)
 
             if cmd_type == "joint_position":
                 # Control joint positions
                 joint_angles = np.array(
                     control_signal.get("data", [0, 0, 0, 0, 0, 0, 0])
                 )
+                #self.arm.Movej_Cmd(joint_angles, 10, 0, 0, 1)
+                self.arm.Movej_CANFD(joint_angles, True, 0)
+                return True
+            elif cmd_type== 'sync':
+                joint_angles = np.array(
+                    control_signal.get("data", [0, 0, 0, 0, 0, 0, 0])
+                )
                 self.arm.Movej_Cmd(joint_angles, 10, 0, 0, 1)
-                return True
-
-            elif cmd_type == "cartesian_position":
-                # Control cartesian position
-                position = control_signal.get("position", [0, 0, 0])
-                orientation = control_signal.get("orientation", [0, 0, 0, 1])
-                pose_target = np.array([*position, *orientation])
-                self.arm.Movep_CANFD(pose_target, False)
-                return True
+                print('action init finished')
 
             return False
         except Exception as e:

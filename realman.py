@@ -35,7 +35,7 @@ class RealmanArmModel(DeviceModel):
         if "type" not in data:
             return False, "Missing 'type' field in control data"
             
-        if data["type"] == "joint":
+        if data["type"] == "joint" or data['type']=='sync':
             if "positions" not in data:
                 return False, "Missing 'positions' field for joint control"
                 
@@ -100,6 +100,11 @@ class RealmanArmModel(DeviceModel):
             # Process joint position data
             return {
                 "command": "joint_position",
+                "data": data["positions"]
+            }
+        elif data['type'] == 'sync':
+            return {
+                "command": "sync",
                 "data": data["positions"]
             }
         elif data["type"] == "cartesian":

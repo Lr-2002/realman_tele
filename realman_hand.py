@@ -70,10 +70,9 @@ class RealmanHand:
         print(f"Hand status: Left={self.initialized['left_hand']}, Right={self.initialized['right_hand']}")
         
         # Start control threads
-        self.start_control_threads()
+        # self.start_control_threads()
         
-        input('Control threads started. Press Enter to continue...') 
-        
+        input('Waiting to sync pose,  Press Enter to continue...') 
     def init_arms(self, left_arm_ip, right_arm_ip):
         """Initialize both arms"""
         # Initialize left arm
@@ -192,7 +191,16 @@ class RealmanHand:
                 print(f"Error during hand mirroring: {e}")
         else:
             print("Cannot mirror hands - both hands must be initialized")
-
+        
+    def start_with_action(self, action):
+       
+        print(action)
+        input('this is the target action, go ahead?')
+        self.left_arm.sync_position(action[0:7])
+        self.left_hand.set_finger_positions(action[7:13])
+        self.right_arm.sync_position(action[13: 20])
+        self.left_hand.set_finger_positions(action[20:])
+        self.start_control_threads()
     def start_control_threads(self):
         """
         Start the continuous control threads for all components
@@ -262,6 +270,7 @@ class RealmanHand:
                 # Get latest joint positions from queue (non-blocking)
                 try:
                     joint_positions = self.right_arm_queue.get(block=False)
+                    print('------------ getting new joint position for right arm'  ) 
                     self.right_arm.move_to_joint_position(joint_positions)
                 except queue.Empty:
                     pass  # No new commands, continue
@@ -366,7 +375,7 @@ class RealmanHand:
                 except queue.Empty:
                     break
             self.right_hand_queue.put(right_hand_action)
-        
+        #time.sleep(0.02)
         return True
         
     def close(self):
